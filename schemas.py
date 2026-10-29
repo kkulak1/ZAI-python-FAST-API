@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -18,19 +18,22 @@ class ProblemDetail(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: Annotated[str, Field(min_length=1)]
+    password: Annotated[str, Field(min_length=1, json_schema_extra={"format": "password"})]
 
 
 class LoginResponse(BaseModel):
     accessToken: str
-    tokenType: str = "bearer"
+    tokenType: Literal["bearer"] = "bearer"
     expiresIn: int
 
 
 class PasswordChange(BaseModel):
-    currentPassword: str
-    newPassword: Annotated[str, Field(min_length=8)]
+    currentPassword: Annotated[str, Field(min_length=1, json_schema_extra={"format": "password"})]
+    newPassword: Annotated[
+        str,
+        Field(min_length=8, json_schema_extra={"format": "password"}),
+    ]
 
 
 class SeriesInput(BaseModel):
