@@ -1,5 +1,3 @@
-"""Measurement ingestion and public query endpoints."""
-
 from datetime import datetime
 from typing import Literal
 
@@ -23,7 +21,7 @@ router = APIRouter(prefix="/api/measurements", tags=["measurements"])
 def to_schema(measurement: MeasurementModel) -> Measurement:
     return Measurement(
         id=measurement.id,
-        seriesId=measurement.sensor.series_id,
+        seriesId=measurement.series_id,
         sensorId=measurement.sensor_id,
         value=measurement.value,
         timestamp=measurement.timestamp,
@@ -91,6 +89,7 @@ def create_measurement(
     measurement = MeasurementModel(
         value=payload.value,
         timestamp=timestamp,
+        series_id=sensor.series_id,
         sensor_id=sensor.id,
     )
     db.add(measurement)

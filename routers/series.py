@@ -1,5 +1,3 @@
-"""Measurement-series endpoints."""
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import or_, select
 
@@ -76,13 +74,12 @@ def update_series(
         raise HTTPException(status_code=404, detail="Series not found")
     has_out_of_range = db.scalar(
         select(MeasurementModel.id)
-        .join(MeasurementModel.sensor)
         .where(
             or_(
                 MeasurementModel.value < payload.minValue,
                 MeasurementModel.value > payload.maxValue,
             ),
-            MeasurementModel.sensor.has(series_id=series_id),
+            MeasurementModel.series_id == series_id,
         )
         .limit(1)
     )

@@ -1,5 +1,3 @@
-"""Sensor administration endpoints."""
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload

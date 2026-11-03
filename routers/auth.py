@@ -1,5 +1,3 @@
-"""Authentication endpoints."""
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
@@ -23,7 +21,7 @@ def login(payload: LoginRequest, db: DbSession) -> LoginResponse:
     expires_in = 3600
     return LoginResponse(
         accessToken=issue_token(user, expires_in),
-        tokenType="bearer",
+        tokenType="Bearer",
         expiresIn=expires_in,
     )
 
