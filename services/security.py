@@ -1,5 +1,3 @@
-"""Authentication and sensor-key services."""
-
 from __future__ import annotations
 
 import base64
@@ -7,7 +5,6 @@ import binascii
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 
@@ -20,7 +17,14 @@ from config import settings
 from database.models import Sensor, User, hash_api_key, hash_password
 
 _TOKEN_SECRET = settings.SECRET_KEY.encode("utf-8")
-_REVOKED_TOKENS: set[str] = set()
+_REVOKED_TOKENS: dict[str, int] = {}
+
+
+def _cleanup_revoked_tokens(now: int | None = None) -> None:
+    current_time = int(time.time()) if now is None else now
+    for token, expires_at in list(_REVOKED_TOKENS.items()):
+        if expires_at <= current_time:
+            del _REVOKED_TOKENS[token]
 
 
 def verify_password(password: str, password_hash: str) -> bool:
@@ -47,6 +51,7 @@ def issue_token(user: User, expires_in: int = 3600) -> str:
 def get_current_user(db: Session, token: str | None) -> User:
     if not token or "." not in token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    _cleanup_revoked_tokens()
     if token in _REVOKED_TOKENS:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
     encoded, signature = token.rsplit(".", 1)
@@ -73,8 +78,25 @@ def get_current_user(db: Session, token: str | None) -> User:
 
 
 def revoke_token(token: str | None) -> None:
-    if token:
-        _REVOKED_TOKENS.add(token)
+    if not token:
+        return
+    try:
+        encoded, _ = token.rsplit(".", 1)
+        payload = json.loads(base64.urlsafe_b64decode(encoded.encode()))
+        expires_at = int(payload["exp"])
+    except (
+        binascii.Error,
+        UnicodeDecodeError,
+        ValueError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+    ):
+        return
+    now = int(time.time())
+    _cleanup_revoked_tokens(now)
+    if expires_at > now:
+        _REVOKED_TOKENS[token] = expires_at
 
 
 def change_password(db: Session, user: User, current: str, new: str) -> None:
