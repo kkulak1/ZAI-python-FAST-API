@@ -107,7 +107,7 @@ def change_password(db: Session, user: User, current: str, new: str) -> None:
 
 
 def create_sensor_key() -> str:
-    return secrets.token_urlsafe(32)
+    return secrets.token_urlsafe(24)
 
 
 def verify_sensor_api_key(db: Session, api_key: str) -> Sensor:

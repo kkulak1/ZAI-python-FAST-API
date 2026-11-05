@@ -24,7 +24,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     accessToken: str
-    tokenType: Literal["bearer"] = "bearer"
+    tokenType: Literal["Bearer"] = "Bearer"
     expiresIn: int
 
 

@@ -1,5 +1,3 @@
-"""SQLAlchemy models and credential hashing helpers."""
-
 from __future__ import annotations
 
 import hashlib
@@ -47,6 +45,10 @@ class Series(Base):
         back_populates="series",
         cascade="all, delete-orphan",
     )
+    measurements: Mapped[list[Measurement]] = relationship(
+        back_populates="series",
+        cascade="all, delete-orphan",
+    )
 
 
 class Sensor(Base):
@@ -63,10 +65,7 @@ class Sensor(Base):
     )
 
     series: Mapped[Series] = relationship(back_populates="sensors")
-    measurements: Mapped[list[Measurement]] = relationship(
-        back_populates="sensor",
-        cascade="all, delete-orphan",
-    )
+    measurements: Mapped[list[Measurement]] = relationship(back_populates="sensor")
 
     @validates("api_key_hash")
     def validate_api_key_hash(self, key: str, value: str) -> str:
@@ -86,13 +85,15 @@ class Measurement(Base):
         index=True,
     )
     value: Mapped[float] = mapped_column(Float, nullable=False)
-    sensor_id: Mapped[int] = mapped_column(ForeignKey("sensors.id"), nullable=False, index=True)
+    series_id: Mapped[int] = mapped_column(ForeignKey("series.id"), nullable=False, index=True)
+    sensor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("sensors.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
+    series: Mapped[Series] = relationship(back_populates="measurements")
     sensor: Mapped[Sensor] = relationship(back_populates="measurements")
-
-    @property
-    def series_id(self) -> int:
-        return self.sensor.series_id
 
 
 def _validate_measurement_range(
@@ -102,11 +103,10 @@ def _validate_measurement_range(
 ) -> None:
     bounds = connection.execute(
         select(Series.min_value, Series.max_value)
-        .join(Sensor, Sensor.series_id == Series.id)
-        .where(Sensor.id == target.sensor_id)
+        .where(Series.id == target.series_id)
     ).one_or_none()
     if bounds is None:
-        raise ValueError(f"Sensor {target.sensor_id} does not exist")
+        raise ValueError(f"Series {target.series_id} does not exist")
     if not bounds.min_value <= target.value <= bounds.max_value:
         raise ValueError(
             f"Measurement value {target.value} is outside the series range "
