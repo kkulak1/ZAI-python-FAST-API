@@ -123,7 +123,7 @@ class SecurityServiceTests(unittest.TestCase):
         key = security.create_sensor_key()
 
         self.assertIsInstance(key, str)
-        self.assertGreaterEqual(len(key), 32)
+        self.assertEqual(len(key), 32)
 
     def test_verify_sensor_api_key_returns_sensor(self):
         db = MagicMock()
